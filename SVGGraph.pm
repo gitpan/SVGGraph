@@ -2,13 +2,12 @@ package SVGGraph;
 
 use strict;
 use warnings;
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 sub new()
 {
   my $self = shift;
-  my $class = ref($self) || $self;
-  return bless {}, $class;
+  return bless {}, $self;
 }
 
 sub CreateGraph()
@@ -194,9 +193,9 @@ sub CreateGraph()
     my $titleStyle = 'font-size:24;';
     if ($$options{'titlestyle'})
     {
-      $titleStyle = $$options{'titlestyle'};
+      $titleStyle = &XMLEscape($$options{'titlestyle'});
     }
-    $svg .= "<text x=\"" . ($gridWidth / 2) . "\" y=\"" . (-1 * $gridHeight - 20) . "\" style=\"text-anchor:middle;$titleStyle\">$$options{'title'}</text>\n";
+    $svg .= "<text x=\"" . ($gridWidth / 2) . "\" y=\"" . (-1 * $gridHeight - 20) . "\" style=\"text-anchor:middle;$titleStyle\">" . &XMLEscape($$options{'title'}) . "</text>\n";
   }
   ### x-axis label
   if ($$options{'xlabel'})
@@ -204,9 +203,9 @@ sub CreateGraph()
     my $xLabelStyle = 'font-size:16;';
     if ($$options{'xlabelstyle'})
     {
-      $xLabelStyle = $$options{'xlabelstyle'};
+      $xLabelStyle = &XMLEscape($$options{'xlabelstyle'});
     }
-    $svg .= "<text x=\"" . ($gridWidth / 2) . "\" y=\"25\" style=\"text-anchor:middle;$xLabelStyle\">$$options{'xlabel'}</text>\n";
+    $svg .= "<text x=\"" . ($gridWidth / 2) . "\" y=\"40\" style=\"text-anchor:middle;$xLabelStyle\">" . &XMLEscape($$options{'xlabel'}) . "</text>\n";
   }
   ### y-axis label
   if ($$options{'ylabel'})
@@ -214,30 +213,31 @@ sub CreateGraph()
     my $yLabelStyle = 'font-size:16;';
     if ($$options{'ylabelstyle'})
     {
-      $yLabelStyle = $$options{'ylabelstyle'};
+      $yLabelStyle = &XMLEscape($$options{'ylabelstyle'});
     }
-    $svg .= "<text x=\"" . ($gridHeight / 2) . "\" y=\"-20\" style=\"text-anchor:middle;$yLabelStyle\" transform=\"rotate(-90)\">$$options{'ylabel'}</text>\n";
+    $svg .= "<text x=\"" . ($gridHeight / 2) . "\" y=\"-20\" style=\"text-anchor:middle;$yLabelStyle\" transform=\"rotate(-90)\">" . &XMLEscape($$options{'ylabel'}) . "</text>\n";
   }
   ### Legend
   my $legendOffset = "$cornerDistance, $cornerDistance";
   if ($$options{'legendoffset'})
   {
-    $legendOffset = $$options{'legendoffset'};
+    $legendOffset = &XMLEscape($$options{'legendoffset'});
   }
   $svg .= "</g>\n<g id=\"legend\" transform=\"translate($legendOffset)\">\n";
   for (my $i = 0; $i < @xyArrayRefs; $i++)
   {
     if ($xyArrayRefs[$i]->[2])
     {
+      my $y = 12 * $i;
       if ($graphType eq 'spline')
       {
         ### The line
-        $svg .= "<line x1=\"0\" y1=\"" . (16 * $i) . "\" x2=\"16\" y2=\"" . (16 * $i) . "\" style=\"stroke-width:2;stroke:" . $xyArrayRefs[$i]->[3] . "\"/>\n";
+        $svg .= "<line x1=\"0\" y1=\"$y\" x2=\"16\" y2=\"$y\" style=\"stroke-width:2;stroke:" . $xyArrayRefs[$i]->[3] . "\"/>\n";
         ### The dot
-        $svg .= $self->CreateDot(8, 16 * $i, 3, $xyArrayRefs[$i]->[3], $i);
+        $svg .= $self->CreateDot(8, $y, 3, $xyArrayRefs[$i]->[3], $i);
       }
       ### The text
-      $svg .= "<text x=\"20\" y=\"" . (4 + 16 * $i) . "\" style=\"font-size:12;fill:" . $xyArrayRefs[$i]->[3] . "\">" . $xyArrayRefs[$i]->[2] . "</text>\n";
+      $svg .= "<text x=\"20\" y=\"" . ($y + 4) . "\" style=\"font-size:12;fill:" . $xyArrayRefs[$i]->[3] . "\">" . $xyArrayRefs[$i]->[2] . "</text>\n";
     }
   }
   $svg .= "</g>\n</svg>\n";
@@ -246,7 +246,7 @@ sub CreateGraph()
 
 ### CreateDot is a subroutine that creates the svg code for different
 ### kinds of dots used in the spline graph type: circles, squares, triangles and more.
-sub CreateDot()
+sub CreateDot($$$$$)
 {
   my $self = shift;
   my $x = shift;
@@ -291,7 +291,7 @@ sub CreateDot()
 ### 3.1234 becomes 2
 ### 40 becomes 50
 
-sub NaturalRound()
+sub NaturalRound($)
 {
   my $self = shift;
   my $numberToRound = shift;
@@ -314,6 +314,23 @@ sub NaturalRound()
   {
     $rounded = 10 * 10**$order;
   }
+}
+
+sub XMLEscape($)
+{
+  my $string = shift;
+  unless (defined ($string))
+  {
+    $string = '';
+  }
+  $string =~ s/\&/&amp;/cg;
+  $string =~ s/>/&gt;/cg;
+  $string =~ s/</&lt;/cg;
+  $string =~ s/\"/&quot;/cg;
+  $string =~ s/\'/&apos;/cg;
+  $string =~ s/\`/&apos;/cg;
+  $string =~ s/([\x00-\x1f])/sprintf('&#x%02X;',chr($1))/cg;
+  return $string;
 }
 
 1;
@@ -347,11 +364,10 @@ __END__
   If your internet browser cannot display SVG, try downloading
   a plugin at adobe.com.
 
-=head2 EXAMPLES
+=head1 EXAMPLES
 
-=for html
-<img src="http://pearlshed.nl/svggraph/1.png"><br>
-<img src="http://pearlshed.nl/svggraph/2.png"><br>
+  For an example see: http://pearlshed.nl/svggraph/1.png
+  and L<http://pearlshed.nl/svggraph/2.png>
 
   Long code example:
   #!/usr/bin/perl -w -I.

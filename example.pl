@@ -12,17 +12,17 @@ my @e = (3, 1, 2, -3, -4, -9, -8, -7, 6, 5, 12, 30, 23, 12, 17, 13, 23, 12, 10, 
 my $SVGGraph = new SVGGraph;
 print "Content-type: image/svg-xml\n\n";
 print $SVGGraph->CreateGraph(	{
-					'graphtype' => 'verticalbars', ### verticalbars or spline
-					'imageheight' => 300, ### The total height of the whole svg image
-					'barwidth' => 8, ### Width of the bar or dot in pixels
-					'horiunitdistance' => 20, ### This is the distance in pixels between 1 x-unit
+					'graphtype' => 'spline', ### verticalbars or spline
+          'imageheight' => 500, ### The total height of the whole svg image
+          'barwidth' => 4, ### Width of the bar or dot in pixels
+					'horiunitdistance' => 30, ### This is the distance in pixels between 1 x-unit
 					'title' => 'Financial Results Q1 2002',
-					'titlestyle' => 'font-size:24;fill:#FF0000;',
+          'titlestyle' => 'font-size:24;fill:#FF0000;',
 					'xlabel' => 'Week',
-					'xlabelstyle' => 'font-size:16;fill:darkblue',
+          'xlabelstyle' => 'font-size:32;fill:darkblue',
 					'ylabel' => 'Revenue (x1000 USD)',
-					'ylabelstyle' => 'font-size:16;fill:brown',
-					'legendoffset' => '10, 10' ### In pixels from top left corner
+          'ylabelstyle' => 'font-size:16;fill:brown',
+					'legendoffset' => '10, 10' ### In pixels from top left corner 'x, y'
 				},
 				[\@a, \@b, 'Bananas', '#FF0000'],
 				[\@a, \@c, 'Apples', '#006699'],

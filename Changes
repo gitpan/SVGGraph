@@ -6,3 +6,7 @@ Revision history for Perl extension SVGGraph.
 
 0.02 Wed Jul 24 16:20:23 2002
 	- Some bugs fixed and styling features added
+
+0.03 Fri Jul 26 12:41:12 2002
+	- Some bugs fixed
+	- Added XML escaping of content
