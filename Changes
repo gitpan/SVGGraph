@@ -27,10 +27,12 @@ Revision history for Perl extension SVGGraph.
 0.06 2002-11-26
 	- Fixed "Divide by 0" bug if only 1 x or y value exists
 
+0.07 2002-11-28
+	- Fixed "strange dot colors" bug
+	- Moved legend default to right side of graph
 
 
 
 
 Still to be fixed:
-	- Rectangle behind legend for better readability
 	- Use of svgz, a gzipped version of svg for more compact (smaller) files

@@ -3,7 +3,7 @@ package SVGGraph;
 use strict;
 use warnings;
 use utf8;
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 sub new()
 {
@@ -97,7 +97,7 @@ sub CreateGraph()
   ### The height of the grid in pixels:
   my $gridHeight = $imageHeight - 2 * $cornerDistance;
   ### The width of the whole svg image:
-  my $imageWidth = $gridWidth + 2 * $cornerDistance;
+  my $imageWidth = $gridWidth + (4 * $cornerDistance);
   ### The horizontal space between vertical gridlines in pixels:
   my $xGridDistance = 20;
   ### The vertical space between horizontal gridlines in pixels:
@@ -266,7 +266,7 @@ sub CreateGraph()
     $svg .= "<text x=\"" . ($gridHeight / 2) . "\" y=\"-20\" style=\"text-anchor:middle;$yLabelStyle\" transform=\"rotate(-90)\">" . $self->XMLEscape($$options{'ylabel'}) . "</text>\n";
   }
   ### Legend
-  my $legendOffset = "$cornerDistance, $cornerDistance";
+  my $legendOffset = ($cornerDistance + $gridWidth + 10) . ", $cornerDistance";
   if ($$options{'legendoffset'})
   {
     $legendOffset = $self->XMLEscape($$options{'legendoffset'});
@@ -323,7 +323,7 @@ sub CreateDot($$$$$)
       my $xi = $x + $radius * cos($alpha);
       my $yi = $y + $radius * sin($alpha);
       $svg .= ($i == 1) ? "M" : "L";
-      $svg .= sprintf (" %1.3f ", $xi) . sprintf (" %1.3f ", $yi) + 0;
+      $svg .= sprintf (" %1.3f ", $xi) . (sprintf (" %1.3f ", $yi) + 0);
     }
     $svg .=  "z\" style=\"fill: $color; stroke: $color;\"/>\n";
   }
@@ -373,7 +373,7 @@ sub DarkenHexRGB($)
   }
   if ($hexString =~ m/^\#?[0-9a-f]{6}$/i)
   {
-    while ($hexString =~ m/([0-9a-f]{2})/ig)
+    while ($hexString =~ m/([0-9a-f][0-9a-f])/ig)
     {
       $darkHexString .= sprintf "%02lx", int(hex($1)/2);
     }
