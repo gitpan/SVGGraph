@@ -2,7 +2,8 @@ package SVGGraph;
 
 use strict;
 use warnings;
-our $VERSION = '0.04';
+use utf8;
+our $VERSION = '0.05';
 
 sub new()
 {
@@ -148,7 +149,7 @@ sub CreateGraph()
   ### Draw the numbers and the gridlines
   for (my $i = 0; $i < $yNumberOfNumbers; $i++)
   {
-    my $YValue = sprintf "%1.2f", (-1 * $i * $deltaYPixels);
+    my $YValue = sprintf ("%1.2f", (-1 * $i * $deltaYPixels)) + 0;
     ### numbers
     $svg .= "<text x=\"-5\" y=\"" . ($YValue + 2) . "\" class=\"ny\">" . ($minY + $i * $deltaYUnits) . "</text>\n";
     ### gridline
@@ -165,7 +166,7 @@ sub CreateGraph()
   my $xNumberOfNumbers = int ($gridWidth / $deltaXPixels) + 1;
   for (my $i = 0; $i < $xNumberOfNumbers; $i++)
   {
-    my $XValue = sprintf "%1.2f", ($i * $deltaXPixels);
+    my $XValue = sprintf ("%1.2f", ($i * $deltaXPixels)) + 0;
     ### numbers
     $svg .= "<text x=\"" . $XValue . "\" y=\"10\" class=\"nx\">" . ($minX + $i * $deltaXUnits) . "</text>\n";
     ### gridline
@@ -185,7 +186,7 @@ sub CreateGraph()
       for (my $dotNumber = 0; $dotNumber < @{$xyArrayRefs[$i]->[0]}; $dotNumber++)
       {
         my $dotX = $horiUnitDistance * ($xyArrayRefs[$i]->[0]->[$dotNumber] - $minX);
-        my $dotY = -1 * $yPixelsPerUnit * ($xyArrayRefs[$i]->[1]->[$dotNumber] - $minY);
+        my $dotY = sprintf ("%1.2f", -1 * $yPixelsPerUnit * ($xyArrayRefs[$i]->[1]->[$dotNumber] - $minY)) + 0;
         $dots .= "<use xlink:href=\"#g$i\" transform=\"translate($dotX, $dotY)\"/>\n";
         if ($dotNumber == 0)
         {
@@ -204,7 +205,7 @@ sub CreateGraph()
   {
     for (my $dotNumber = 0; $dotNumber < @{$xyArrayRefs[0]->[0]}; $dotNumber++)
     {
-      ### The longest bars must be drawn first, so that the shirter bars are drwan on top of the longer.
+      ### The longest bars must be drawn first, so that the shorter bars are drwan on top of the longer.
       ### So we sort $i (the number of the graph) to the length of the bar for each point.
       foreach my $i (sort {$xyArrayRefs[$b]->[1]->[$dotNumber] <=> $xyArrayRefs[$a]->[1]->[$dotNumber]} (0 .. $#xyArrayRefs))
       {
@@ -218,7 +219,7 @@ sub CreateGraph()
         {
           $lineY1 = -1 * 1;
         }
-        my $lineY2 = -1 * $yPixelsPerUnit * ($xyArrayRefs[$i]->[1]->[$dotNumber] - $minY);
+        my $lineY2 = sprintf ("%1.2f", -1 * $yPixelsPerUnit * ($xyArrayRefs[$i]->[1]->[$dotNumber] - $minY)) + 0;
         $svg .= "<line x1=\"$lineX\" y1=\"$lineY1\" x2=\"$lineX\" y2=\"$lineY2\" style=\"stroke:" . $xyArrayRefs[$i]->[3] . ";stroke-width:$barWidth;\"/>\n";
       }
     }
@@ -313,7 +314,7 @@ sub CreateDot($$$$$)
       my $xi = $x + $radius * cos($alpha);
       my $yi = $y + $radius * sin($alpha);
       $svg .= ($i == 1) ? "M" : "L";
-      $svg .= sprintf " %1.3f %1.3f ", $xi, $yi;
+      $svg .= sprintf (" %1.3f ", $xi) . sprintf (" %1.3f ", $yi) + 0;
     }
     $svg .=  "z\" style=\"fill: $color; stroke: $color;\"/>\n";
   }
@@ -350,6 +351,8 @@ sub NaturalRound($)
   }
 }
 
+### DarkenHexRGB is a subroutine that makes a rgb color value darker
+
 sub DarkenHexRGB($)
 {
   my $self = shift;
@@ -359,11 +362,18 @@ sub DarkenHexRGB($)
   {
     $darkHexString = '#';
   }
-  while ($hexString =~ m/([0-9a-f]{2})/ig)
+  if ($hexString =~ m/^\#?[0-9a-f]{6}$/i)
   {
-    $darkHexString .= sprintf "%02lx", int(hex($1)/2);
+    while ($hexString =~ m/([0-9a-f]{2})/ig)
+    {
+      $darkHexString .= sprintf "%02lx", int(hex($1)/2);
+    }
+    return $darkHexString;
   }
-  return $darkHexString;
+  else
+  {
+    return $hexString;
+  }
 }
 
 sub NegateHexadecimalRGB($)
@@ -392,13 +402,13 @@ sub XMLEscape($)
   {
     $string = '';
   }
-  $string =~ s/\&/&amp;/cg;
-  $string =~ s/>/&gt;/cg;
-  $string =~ s/</&lt;/cg;
-  $string =~ s/\"/&quot;/cg;
-  $string =~ s/\'/&apos;/cg;
-  $string =~ s/\`/&apos;/cg;
-  $string =~ s/([\x00-\x1f])/sprintf('&#x%02X;',chr($1))/cg;
+  $string =~ s/\&/&amp;/g;
+  $string =~ s/>/&gt;/g;
+  $string =~ s/</&lt;/g;
+  $string =~ s/\"/&quot;/g;
+  $string =~ s/\'/&apos;/g;
+  #$string =~ s/([\x00-\x1f])/sprintf('&#x%02X;', ord($1))/ge;
+  $string =~ s/([\x{80}-\x{ffff}])/sprintf('&#x%04X;', ord($1))/ge;
   return $string;
 }
 
@@ -418,7 +428,8 @@ __END__
   my @b = (3, 4, 3.5, 6.33);
 
   print "Content-type: image/svg-xml\n\n";
-  print SVGGraph->new(
+  my $SVGGraph = new SVGGraph;
+  print SVGGraph->CreateGraph(
                         {'title' => 'Financial Results Q1 2002'},
                         [\@a, \@b, 'Staplers', 'red']
                       );

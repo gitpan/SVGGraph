@@ -20,6 +20,11 @@ Revision history for Perl extension SVGGraph.
 	- Fixed some layout errors in the pod documentation
 	- Added feature for darker icons
 
+0.05 Fr Sep 27 18:38:12 2002
+	- Better XML encoding of special characters like the euro symbol \x{20ac}
+	- Better cutting off of large floating point numbers
+	- Fixed an error in the pod
+
 Still to be fixed:
 	- Rectangle behind legend for better readability
 	- Use of svgz, a gzipped version of svg for more compact (smaller) files

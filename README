@@ -18,9 +18,7 @@ the current path to your library path.
 
 DEPENDENCIES
 
-This module requires these other modules and libraries:
-
-  None.
+SVGGraph uses 'use utf8;' which might only work on perl 5.6 or higher.
 
 COPYRIGHT AND LICENCE
 
