@@ -2,7 +2,7 @@ package SVGGraph;
 
 use strict;
 use warnings;
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 sub new()
 {
@@ -19,9 +19,9 @@ sub CreateGraph()
   my $options = shift;
   ### The options passed in the anonymous hash are optional so create a default value first
   my $horiUnitDistance = 20;
-  if ($$options{'horiUnitDistance'})
+  if ($$options{'horiunitdistance'})
   {
-    $horiUnitDistance = $$options{'horiUnitDistance'};
+    $horiUnitDistance = $$options{'horiunitdistance'};
   }
   my $graphType = 'spline';
   if ($$options{'graphtype'})
@@ -61,6 +61,16 @@ sub CreateGraph()
   ### Calculate all dimensions neccessary to create the Graph
   ### Height of the total svg image in pixels:
   my $imageHeight = 400;
+  if ($$options{'imageheight'})
+  {
+    $imageHeight = $$options{'imageheight'};
+  }
+  ### Width of the verticabar or dots in the graph
+  my $barWidth = 3;
+  if ($$options{'barwidth'})
+  {
+    $barWidth = $$options{'barwidth'};
+  }
   ### Distance between the sides of the gris and the sides of the image:
   my $cornerDistance = 50;
   ### Since svg counts from the top left corner of the image, we translate all coordinates vertically in pixels:
@@ -103,9 +113,12 @@ sub CreateGraph()
   {
     my $YValue = (-1 * $i * $deltaYPixels);
     ### numbers
-    $svg .= "<text x=\"-10\" y=\"$YValue\" style=\"text-anchor:middle;font-size:8\" startOffset=\"0\">" . ($minY + $i * $deltaYUnits) . "</text>\n";
+    $svg .= "<text x=\"-5\" y=\"" . ($YValue + 2) . "\" style=\"text-anchor:end;font-size:8\" startOffset=\"0\">" . ($minY + $i * $deltaYUnits) . "</text>\n";
     ### gridline
-    $svg .= "<line x1=\"0\" y1=\"$YValue\" x2=\"$gridWidth\" y2=\"$YValue\" style=\"stroke: #000000; fill: none; stroke-width: 0.5; stroke-dasharray:4 4;\"/>\n";
+    if ($i != 0)
+    {
+      $svg .= "<line x1=\"0\" y1=\"$YValue\" x2=\"$gridWidth\" y2=\"$YValue\" style=\"stroke: #000000; fill: none; stroke-width: 0.5; stroke-dasharray:4 4;\"/>\n";
+    }
   }
 
   ### print numbers on x axis and vertical gridlines
@@ -119,7 +132,10 @@ sub CreateGraph()
     ### numbers
     $svg .= "<text x=\"" . $XValue . "\" y=\"10\" style=\"text-anchor:middle;font-size:8\" startOffset=\"0\">" . ($minX + $i * $deltaXUnits) . "</text>\n";
     ### gridline
-    $svg .= "<line x1=\"$XValue\" y1=\"0\" x2=\"$XValue\" y2=\"" . (-1 * $gridHeight) . "\" style=\"stroke:#000000;stroke-width:0.5;stroke-dasharray:4 4;\"/>\n";
+    if ($i != 0)
+    {
+      $svg .= "<line x1=\"$XValue\" y1=\"0\" x2=\"$XValue\" y2=\"" . (-1 * $gridHeight) . "\" style=\"stroke:#000000;stroke-width:0.5;stroke-dasharray:4 4;\"/>\n";
+    }
   }
 
   ### print measurepoints (dots) (data) (coordinates)
@@ -129,13 +145,19 @@ sub CreateGraph()
     for (my $i = 0; $i < @xyArrayRefs; $i++)
     {
       my $dots;
-      $svg .= "<path d=\"M0 0";
       for (my $dotNumber = 0; $dotNumber < @{$xyArrayRefs[$i]->[0]}; $dotNumber++)
       {
         my $dotX = $horiUnitDistance * ($xyArrayRefs[$i]->[0]->[$dotNumber] - $minX);
         my $dotY = -1 * $yPixelsPerUnit * ($xyArrayRefs[$i]->[1]->[$dotNumber] - $minY);
-        $dots .= $self->CreateDot($dotX, $dotY, 3, $xyArrayRefs[$i]->[3], $i);
-        $svg .= " L$dotX $dotY";
+        $dots .= $self->CreateDot($dotX, $dotY, $barWidth, $xyArrayRefs[$i]->[3], $i);
+        if ($dotNumber == 0)
+        {
+          $svg .= "<path d=\"M$dotX $dotY";
+        }
+        else
+        {
+          $svg .= " L$dotX $dotY";
+        }
       }
       $svg .= "\" style=\"fill: none; stroke: " . $xyArrayRefs[$i]->[3] . "; stroke-width:2\"/>\n$dots";
     }
@@ -160,7 +182,7 @@ sub CreateGraph()
           $lineY1 = -1 * 1;
         }
         my $lineY2 = -1 * $yPixelsPerUnit * ($xyArrayRefs[$i]->[1]->[$dotNumber] - $minY);
-        $svg .= "<line x1=\"$lineX\" y1=\"$lineY1\" x2=\"$lineX\" y2=\"$lineY2\" style=\"stroke:" . $xyArrayRefs[$i]->[3] . ";stroke-width:10;\"/>\n";
+        $svg .= "<line x1=\"$lineX\" y1=\"$lineY1\" x2=\"$lineX\" y2=\"$lineY2\" style=\"stroke:" . $xyArrayRefs[$i]->[3] . ";stroke-width:$barWidth;\"/>\n";
       }
     }
   }
@@ -169,17 +191,32 @@ sub CreateGraph()
   ### Title
   if ($$options{'title'})
   {
-    $svg .= "<text x=\"" . ($gridWidth / 2) . "\" y=\"" . (-1 * $gridHeight - 20) . "\" style=\"text-anchor:middle;font-size:24\" startOffset=\"0\">$$options{'title'}</text>\n";
+    my $titleStyle = 'font-size:24;';
+    if ($$options{'titlestyle'})
+    {
+      $titleStyle = $$options{'titlestyle'};
+    }
+    $svg .= "<text x=\"" . ($gridWidth / 2) . "\" y=\"" . (-1 * $gridHeight - 20) . "\" style=\"text-anchor:middle;$titleStyle\">$$options{'title'}</text>\n";
   }
   ### x-axis label
   if ($$options{'xlabel'})
   {
-    $svg .= "<text x=\"" . ($gridWidth / 2) . "\" y=\"25\" style=\"text-anchor:middle;font-size:16\" startOffset=\"0\">$$options{'xlabel'}</text>\n";
+    my $xLabelStyle = 'font-size:16;';
+    if ($$options{'xlabelstyle'})
+    {
+      $xLabelStyle = $$options{'xlabelstyle'};
+    }
+    $svg .= "<text x=\"" . ($gridWidth / 2) . "\" y=\"25\" style=\"text-anchor:middle;$xLabelStyle\">$$options{'xlabel'}</text>\n";
   }
   ### y-axis label
   if ($$options{'ylabel'})
   {
-    $svg .= "<text x=\"" . ($gridHeight / 2) . "\" y=\"-20\" style=\"text-anchor:middle;font-size:16\" startOffset=\"0\" transform=\"rotate(-90)\">$$options{'ylabel'}</text>\n";
+    my $yLabelStyle = 'font-size:16;';
+    if ($$options{'ylabelstyle'})
+    {
+      $yLabelStyle = $$options{'ylabelstyle'};
+    }
+    $svg .= "<text x=\"" . ($gridHeight / 2) . "\" y=\"-20\" style=\"text-anchor:middle;$yLabelStyle\" transform=\"rotate(-90)\">$$options{'ylabel'}</text>\n";
   }
   ### Legend
   my $legendOffset = "$cornerDistance, $cornerDistance";
@@ -195,12 +232,12 @@ sub CreateGraph()
       if ($graphType eq 'spline')
       {
         ### The line
-        $svg .= "<line x1=\"0\" y1=\"" . (16 * $i) . "\" x2=\"16\" y2=\"" . (20 * $i) . "\" style=\"stroke-width:2;stroke:" . $xyArrayRefs[$i]->[3] . "\"/>\n";
+        $svg .= "<line x1=\"0\" y1=\"" . (16 * $i) . "\" x2=\"16\" y2=\"" . (16 * $i) . "\" style=\"stroke-width:2;stroke:" . $xyArrayRefs[$i]->[3] . "\"/>\n";
         ### The dot
         $svg .= $self->CreateDot(8, 16 * $i, 3, $xyArrayRefs[$i]->[3], $i);
       }
       ### The text
-      $svg .= "<text x=\"20\" y=\"" . (4 + 16 * $i) . "\" style=\"font-size:12;stroke:" . $xyArrayRefs[$i]->[3] . "\">" . $xyArrayRefs[$i]->[2] . "</text>\n";
+      $svg .= "<text x=\"20\" y=\"" . (4 + 16 * $i) . "\" style=\"font-size:12;fill:" . $xyArrayRefs[$i]->[3] . "\">" . $xyArrayRefs[$i]->[2] . "</text>\n";
     }
   }
   $svg .= "</g>\n</svg>\n";
@@ -218,6 +255,8 @@ sub CreateDot()
   my $color = shift;
   my $dotNumber = shift;
   my $d = 2 * $r;
+  my $minr = -1 * $r;
+  my $mind = -1 * $d;
   my $svg;
   ### Circle
   if ($dotNumber == 0)
@@ -232,12 +271,17 @@ sub CreateDot()
   ### Triangle
   elsif ($dotNumber == 2)
   {
-    $svg .= "<path d=\"M " . ($x - $r) . " " . ($y - $r) . " l $d 0 l -$r $d z\" style=\"fill: $color; stroke: $color;\"/>\n";
+    $svg .= "<path d=\"M " . ($x - $r) . " " . ($y - $r) . " l $d 0 l $minr $d z\" style=\"fill: $color; stroke: $color;\"/>\n";
   }
   ### Square
+  elsif ($dotNumber == 3)
+  {
+    $svg .= "<path d=\"M " . ($x - $r) . " " . ($y - $r) . " l $d 0 l 0 $d l $mind 0 z\" style=\"fill: $color; stroke: $color;\"/>\n";
+  }
+  ### Diamond
   else
   {
-    $svg .= "<path d=\"M " . ($x - $r) . " " . ($y - $r) . " l $d 0 l 0 $d l -$d 0 z\" style=\"fill: $color; stroke: $color;\"/>\n";
+    $svg .= "<path d=\"M $x " . ($y - $r) . " l $r $r l $minr $r l $minr $minr z\" style=\"fill: $color; stroke: $color;\"/>\n";
   }
   return $svg;
 }
@@ -278,7 +322,7 @@ __END__
 
 =head1 NAME
 
-SVGGraph - Perl extension for creating SVG Graphs.
+  SVGGraph - Perl extension for creating SVG Graphs / Diagrams / Charts / Plots.
 
 =head1 SYNOPSIS
 
@@ -289,31 +333,71 @@ SVGGraph - Perl extension for creating SVG Graphs.
 
   print "Content-type: image/svg-xml\n\n";
   print SVGGraph->new(
-                        { 'title' => 'Financial Results Q1 2002' },
-			[\@a, \@b, 'Staplers', 'red']
-		     );
+                        {'title' => 'Financial Results Q1 2002'},
+                        [\@a, \@b, 'Staplers', 'red']
+                      );
 
 =head1 DESCRIPTION
 
-This module converts sets of arrays with coordinates into
-graphs, much like GNUplot would. It creates the graphs in the
-SVG (Scalable Vector Graphics) format. It has two styles,
-verticalbars and spline. It is designed to be light-weight.
+  This module converts sets of arrays with coordinates into
+  graphs, much like GNUplot would. It creates the graphs in the
+  SVG (Scalable Vector Graphics) format. It has two styles,
+  verticalbars and spline. It is designed to be light-weight.
 
-If your internet browser cannot display SVG, try downloading
-a plugin at adobe.com.
+  If your internet browser cannot display SVG, try downloading
+  a plugin at adobe.com.
 
-=head2 EXPORT
+=head2 EXAMPLES
 
-None by default.
+=for html
+<img src="http://pearlshed.nl/svggraph/1.png"><br>
+<img src="http://pearlshed.nl/svggraph/2.png"><br>
 
+  Long code example:
+  #!/usr/bin/perl -w -I.
+
+  use strict;
+  use SVGGraph;
+
+  ### Array with x-values
+  my @a = (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20);
+  ### Arrays with y-values
+  my @b = (-5, 2, 1, 5, 8, 8, 9, 5, 4, 10, 2, 1, 5, 8, 8, 9, 5, 4, 10, 5);
+  my @c = (6, -4, 2, 1, 5, 8, 8, 9, 5, 4, 10, 2, 1, 5, 8, 8, 9, 5, 4, 10);
+  my @d = (1, 2, 3, 4, 9, 8, 7, 6, 5, 12, 30, 23, 12, 17, 13, 23, 12, 10, 20, 11);
+  my @e = (3, 1, 2, -3, -4, -9, -8, -7, 6, 5, 12, 30, 23, 12, 17, 13, 23, 12, 10, 20);
+
+  ### Initialise
+  my $SVGGraph = new SVGGraph;
+  ### Print the elusive content-type so the browser knows what mime type to expect
+  print "Content-type: image/svg-xml\n\n";
+  ### Print the graph
+  print $SVGGraph->CreateGraph(	{
+            'graphtype' => 'verticalbars', ### verticalbars or spline
+            'imageheight' => 300, ### The total height of the whole svg image
+            'barwidth' => 8, ### Width of the bar or dot in pixels
+            'horiunitdistance' => 20, ### This is the distance in pixels between 1 x-unit
+            'title' => 'Financial Results Q1 2002',
+            'titlestyle' => 'font-size:24;fill:#FF0000;',
+            'xlabel' => 'Week',
+            'xlabelstyle' => 'font-size:16;fill:darkblue',
+            'ylabel' => 'Revenue (x1000 USD)',
+            'ylabelstyle' => 'font-size:16;fill:brown',
+            'legendoffset' => '10, 10' ### In pixels from top left corner
+          },
+          [\@a, \@b, 'Bananas', '#FF0000'],
+          [\@a, \@c, 'Apples', '#006699'],
+          [\@a, \@d, 'Strawberries', '#FF9933'],
+          [\@a, \@e, 'Melons', 'green']
+        );
 
 =head1 AUTHOR
 
-Teun van Eijsden, E<lt>teun@chello.nlE<gt>
+  Teun van Eijsden, E<lt>teun@chello.nlE<gt>
 
 =head1 SEE ALSO
 
-L<perl>.
+  L<perl>.
+  For SVG styling: L<http://www.w3.org/TR/SVG/styling.html>.
 
 =cut

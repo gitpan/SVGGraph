@@ -4,3 +4,5 @@ Revision history for Perl extension SVGGraph.
 	- original version; created by h2xs 1.21 with options
 		-XA -n SVGGraph
 
+0.02 Wed Jul 24 16:20:23 2002
+	- Some bugs fixed and styling features added
