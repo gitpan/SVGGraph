@@ -2,7 +2,7 @@ package SVGGraph;
 
 use strict;
 use warnings;
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 sub new()
 {
@@ -29,6 +29,14 @@ sub CreateGraph()
   }
   ### The rest are references to arrays with references to arrays with x and y values
   my @xyArrayRefs = @_;
+  ### Check if the color ($xyArrayRefs[$i]->[3]) is provided. If not, choose black
+  for (my $i = 0; $i < @xyArrayRefs; $i++)
+  {
+    unless ($xyArrayRefs[$i]->[3])
+    {
+      $xyArrayRefs[$i]->[3] = '#000000';
+    }
+  }
   ### Declare the $minX as the lowest value of x in the arrays, same for $minY, $maxX and $maxY
   my $minX = $xyArrayRefs[0]->[0]->[0]; ### Equivalent to ${${$xyArrayRefs[0]}[0]}[0];
   my $minY = $xyArrayRefs[0]->[1]->[0];
@@ -88,8 +96,38 @@ sub CreateGraph()
   ### Now initiate the svg graph by declaring some general stuff.
   my $svg .= <<"  EOF";
 <?xml version="1.0" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20000303 Stylable//EN" "http://www.w3.org/TR/2000/03/WD-SVG-20000303/DTD/svg-20000303-stylable.dtd" >
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 20000303 Stylable//EN" "http://www.w3.org/TR/2000/03/WD-SVG-20000303/DTD/svg-20000303-stylable.dtd">
 <svg width="$imageWidth" height="$imageHeight">
+<defs>
+  EOF
+  if ($graphType eq 'spline')
+  {
+    for (my $i = 0; $i < @xyArrayRefs; $i++)
+    {
+      $svg .= $self->CreateDot(0, 0, $barWidth, $xyArrayRefs[$i]->[3], $i);
+    }
+  }
+  $svg .= <<"  EOF";
+<style type="text/css"><![CDATA[
+.nx
+{
+  text-anchor: middle;
+  font-size: 8;
+}
+.ny
+{
+  text-anchor: end;
+  font-size: 8;
+}
+.g
+{
+  stroke: #000000;
+  fill: none;
+  stroke-width: 0.5;
+  stroke-dasharray:4 4;
+}
+]]></style>
+</defs>
 <g id="grid" transform="translate($cornerDistance, $vertTranslate)">
   EOF
 
@@ -110,13 +148,13 @@ sub CreateGraph()
   ### Draw the numbers and the gridlines
   for (my $i = 0; $i < $yNumberOfNumbers; $i++)
   {
-    my $YValue = (-1 * $i * $deltaYPixels);
+    my $YValue = sprintf "%1.2f", (-1 * $i * $deltaYPixels);
     ### numbers
-    $svg .= "<text x=\"-5\" y=\"" . ($YValue + 2) . "\" style=\"text-anchor:end;font-size:8\" startOffset=\"0\">" . ($minY + $i * $deltaYUnits) . "</text>\n";
+    $svg .= "<text x=\"-5\" y=\"" . ($YValue + 2) . "\" class=\"ny\">" . ($minY + $i * $deltaYUnits) . "</text>\n";
     ### gridline
     if ($i != 0)
     {
-      $svg .= "<line x1=\"0\" y1=\"$YValue\" x2=\"$gridWidth\" y2=\"$YValue\" style=\"stroke: #000000; fill: none; stroke-width: 0.5; stroke-dasharray:4 4;\"/>\n";
+      $svg .= "<line x1=\"0\" y1=\"$YValue\" x2=\"$gridWidth\" y2=\"$YValue\" class=\"g\"/>\n";
     }
   }
 
@@ -127,13 +165,13 @@ sub CreateGraph()
   my $xNumberOfNumbers = int ($gridWidth / $deltaXPixels) + 1;
   for (my $i = 0; $i < $xNumberOfNumbers; $i++)
   {
-    my $XValue = ($i * $deltaXPixels);
+    my $XValue = sprintf "%1.2f", ($i * $deltaXPixels);
     ### numbers
-    $svg .= "<text x=\"" . $XValue . "\" y=\"10\" style=\"text-anchor:middle;font-size:8\" startOffset=\"0\">" . ($minX + $i * $deltaXUnits) . "</text>\n";
+    $svg .= "<text x=\"" . $XValue . "\" y=\"10\" class=\"nx\">" . ($minX + $i * $deltaXUnits) . "</text>\n";
     ### gridline
     if ($i != 0)
     {
-      $svg .= "<line x1=\"$XValue\" y1=\"0\" x2=\"$XValue\" y2=\"" . (-1 * $gridHeight) . "\" style=\"stroke:#000000;stroke-width:0.5;stroke-dasharray:4 4;\"/>\n";
+      $svg .= "<line x1=\"$XValue\" y1=\"0\" x2=\"$XValue\" y2=\"" . (-1 * $gridHeight) . "\" class=\"g\"/>\n";
     }
   }
 
@@ -148,7 +186,7 @@ sub CreateGraph()
       {
         my $dotX = $horiUnitDistance * ($xyArrayRefs[$i]->[0]->[$dotNumber] - $minX);
         my $dotY = -1 * $yPixelsPerUnit * ($xyArrayRefs[$i]->[1]->[$dotNumber] - $minY);
-        $dots .= $self->CreateDot($dotX, $dotY, $barWidth, $xyArrayRefs[$i]->[3], $i);
+        $dots .= "<use xlink:href=\"#g$i\" transform=\"translate($dotX, $dotY)\"/>\n";
         if ($dotNumber == 0)
         {
           $svg .= "<path d=\"M$dotX $dotY";
@@ -193,9 +231,9 @@ sub CreateGraph()
     my $titleStyle = 'font-size:24;';
     if ($$options{'titlestyle'})
     {
-      $titleStyle = &XMLEscape($$options{'titlestyle'});
+      $titleStyle = $self->XMLEscape($$options{'titlestyle'});
     }
-    $svg .= "<text x=\"" . ($gridWidth / 2) . "\" y=\"" . (-1 * $gridHeight - 20) . "\" style=\"text-anchor:middle;$titleStyle\">" . &XMLEscape($$options{'title'}) . "</text>\n";
+    $svg .= "<text x=\"" . ($gridWidth / 2) . "\" y=\"" . (-1 * $gridHeight - 20) . "\" style=\"text-anchor:middle;$titleStyle\">" . $self->XMLEscape($$options{'title'}) . "</text>\n";
   }
   ### x-axis label
   if ($$options{'xlabel'})
@@ -203,9 +241,9 @@ sub CreateGraph()
     my $xLabelStyle = 'font-size:16;';
     if ($$options{'xlabelstyle'})
     {
-      $xLabelStyle = &XMLEscape($$options{'xlabelstyle'});
+      $xLabelStyle = $self->XMLEscape($$options{'xlabelstyle'});
     }
-    $svg .= "<text x=\"" . ($gridWidth / 2) . "\" y=\"40\" style=\"text-anchor:middle;$xLabelStyle\">" . &XMLEscape($$options{'xlabel'}) . "</text>\n";
+    $svg .= "<text x=\"" . ($gridWidth / 2) . "\" y=\"40\" style=\"text-anchor:middle;$xLabelStyle\">" . $self->XMLEscape($$options{'xlabel'}) . "</text>\n";
   }
   ### y-axis label
   if ($$options{'ylabel'})
@@ -213,15 +251,15 @@ sub CreateGraph()
     my $yLabelStyle = 'font-size:16;';
     if ($$options{'ylabelstyle'})
     {
-      $yLabelStyle = &XMLEscape($$options{'ylabelstyle'});
+      $yLabelStyle = $self->XMLEscape($$options{'ylabelstyle'});
     }
-    $svg .= "<text x=\"" . ($gridHeight / 2) . "\" y=\"-20\" style=\"text-anchor:middle;$yLabelStyle\" transform=\"rotate(-90)\">" . &XMLEscape($$options{'ylabel'}) . "</text>\n";
+    $svg .= "<text x=\"" . ($gridHeight / 2) . "\" y=\"-20\" style=\"text-anchor:middle;$yLabelStyle\" transform=\"rotate(-90)\">" . $self->XMLEscape($$options{'ylabel'}) . "</text>\n";
   }
   ### Legend
   my $legendOffset = "$cornerDistance, $cornerDistance";
   if ($$options{'legendoffset'})
   {
-    $legendOffset = &XMLEscape($$options{'legendoffset'});
+    $legendOffset = $self->XMLEscape($$options{'legendoffset'});
   }
   $svg .= "</g>\n<g id=\"legend\" transform=\"translate($legendOffset)\">\n";
   for (my $i = 0; $i < @xyArrayRefs; $i++)
@@ -253,40 +291,36 @@ sub CreateDot($$$$$)
   my $y = shift;
   my $r = shift;
   my $color = shift;
+  $color = $self->DarkenHexRGB($color);
   my $dotNumber = shift;
   my $d = 2 * $r;
-  my $minr = -1 * $r;
-  my $mind = -1 * $d;
+  my $negr = -1 * $r;
   my $svg;
   ### Circle
   if ($dotNumber == 0)
   {
-    $svg = "<circle cx=\"$x\" cy=\"$y\" r=\"$r\" style=\"fill: $color; stroke: $color;\"/>\n";
+    $svg = "<circle id=\"g$dotNumber\" cx=\"$x\" cy=\"$y\" r=\"$r\" style=\"fill: $color; stroke: $color;\"/>\n";
   }
-  ### Vertical line
-  elsif ($dotNumber == 1)
-  {
-    $svg .= "<path d=\"M $x " . ($y - $r) . " l 0 $d z\" style=\"stroke: $color; stroke-width: 2\"/>\n";
-  }
-  ### Triangle
-  elsif ($dotNumber == 2)
-  {
-    $svg .= "<path d=\"M " . ($x - $r) . " " . ($y - $r) . " l $d 0 l $minr $d z\" style=\"fill: $color; stroke: $color;\"/>\n";
-  }
-  ### Square
-  elsif ($dotNumber == 3)
-  {
-    $svg .= "<path d=\"M " . ($x - $r) . " " . ($y - $r) . " l $d 0 l 0 $d l $mind 0 z\" style=\"fill: $color; stroke: $color;\"/>\n";
-  }
-  ### Diamond
+  ### Stars
   else
   {
-    $svg .= "<path d=\"M $x " . ($y - $r) . " l $r $r l $minr $r l $minr $minr z\" style=\"fill: $color; stroke: $color;\"/>\n";
+    $svg .= "<path id=\"g$dotNumber\" d=\"";
+    for (my $i = 1; $i <= (2*$dotNumber+2); $i++)
+    {
+      my $radius = ($i % 2) ? $r*1.5 : $r/2;
+      my $pi = atan2(1,1) * 4;
+      my $alpha = $i * ($pi / ($dotNumber + 1));
+      my $xi = $x + $radius * cos($alpha);
+      my $yi = $y + $radius * sin($alpha);
+      $svg .= ($i == 1) ? "M" : "L";
+      $svg .= sprintf " %1.3f %1.3f ", $xi, $yi;
+    }
+    $svg .=  "z\" style=\"fill: $color; stroke: $color;\"/>\n";
   }
   return $svg;
 }
 
-### NaturalRound is a subroutine that round a number to 1, 2, 5 or 10 times its order
+### NaturalRound is a subroutine that rounds a number to 1, 2, 5 or 10 times its order
 ### So 110.34 becomes 100
 ### 3.1234 becomes 2
 ### 40 becomes 50
@@ -316,8 +350,43 @@ sub NaturalRound($)
   }
 }
 
+sub DarkenHexRGB($)
+{
+  my $self = shift;
+  my $hexString = shift;
+  my $darkHexString;
+  if ($hexString =~ m/^\#/)
+  {
+    $darkHexString = '#';
+  }
+  while ($hexString =~ m/([0-9a-f]{2})/ig)
+  {
+    $darkHexString .= sprintf "%02lx", int(hex($1)/2);
+  }
+  return $darkHexString;
+}
+
+sub NegateHexadecimalRGB($)
+{
+  my $self = shift;
+  my $hexString = shift;
+  my $negHexString;
+  if ($hexString =~ m/^\#/)
+  {
+    $negHexString = '#';
+  }
+  while ($hexString =~ m/([0-9a-f]{2})/ig)
+  {
+    $negHexString .= sprintf "%02lx", (255 - hex($1));
+  }
+  return $negHexString;
+}
+
+### XMLEscape is a subroutine that converts special XML characters to their xml encoding character.
+
 sub XMLEscape($)
 {
+  my $self = shift;
   my $string = shift;
   unless (defined ($string))
   {
@@ -366,8 +435,8 @@ __END__
 
 =head1 EXAMPLES
 
-  For an example see: http://pearlshed.nl/svggraph/1.png
-  and L<http://pearlshed.nl/svggraph/2.png>
+  For examples see: http://pearlshed.nl/svggraph/1.png
+  and http://pearlshed.nl/svggraph/2.png
 
   Long code example:
   #!/usr/bin/perl -w -I.
@@ -409,11 +478,11 @@ __END__
 
 =head1 AUTHOR
 
-  Teun van Eijsden, E<lt>teun@chello.nlE<gt>
+  Teun van Eijsden, teun@chello.nl
 
 =head1 SEE ALSO
 
-  L<perl>.
-  For SVG styling: L<http://www.w3.org/TR/SVG/styling.html>.
+  http://perldoc.com/
+  For SVG styling: http://www.w3.org/TR/SVG/styling.html
 
 =cut
