@@ -3,7 +3,7 @@ package SVGGraph;
 use strict;
 use warnings;
 use utf8;
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 sub new()
 {
@@ -65,6 +65,15 @@ sub CreateGraph()
         $minY = $xyArrayRefs[$i]->[1]->[$j];
       }
     }
+  }
+  ### If max equals min, change them artificially
+  if ($maxX == $minX)
+  {
+    $maxX += 1;
+  }
+  if ($maxY == $minY)
+  {
+    $maxY += 1;
   }
   ### Calculate all dimensions neccessary to create the Graph
   ### Height of the total svg image in pixels:
